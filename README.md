@@ -57,3 +57,41 @@ Ist eine Aufgabe nicht lösbar, sind alle Werte `NaN`.
 dart pub get
 dart test
 ```
+
+Die Tests in `test/ballistics_stokes_test.dart` decken ab:
+
+- **Referenzwerte** für fünf Würfe (u. a. mit Starthöhe, schräg nach unten, Mond-Gravitation).
+  Sie stammen aus `tool/reference_values.py`, das die Bewegungsgleichungen mit SciPy (DOP853)
+  numerisch integriert, also unabhängig von der analytischen Lösung. Neu erzeugen mit
+  `python3 tool/reference_values.py` (benötigt `numpy` und `scipy`).
+- **Inverse Modi**: Jeder der fünf Rückrechnungs-Modi muss die Ausgangswerte wieder liefern.
+  Liegt eine Referenzbahn auf dem steilen Ast, wird geprüft, dass die flache Lösung gleicher Weite kommt.
+- **Vakuum**: Wurfparabel-Formeln für `cw = 0`, `A = 0` oder `rho = 0`.
+- **Physik**: Näherung für schwache Reibung `R ≈ R_vak · (1 − 4/3 · v₀·sinα / v_T)`,
+  Grenzgeschwindigkeit beim freien Fall, senkrechter Wurf, Reibung verkürzt Weite und Gipfelhöhe,
+  schwerere Körper fliegen weiter, optimaler Winkel unter 45°.
+- **Unlösbare Eingaben** liefern `NaN`.
+
+## Vergleichsrechner und Quellen
+
+Online-Rechner mit **linearer** (Stokes-)Reibung sind selten, die meisten Tools rechnen quadratisch.
+Zum Gegenprüfen eignen sich daher vor allem der Vakuumfall und eine eigene Integration der Differentialgleichung.
+
+| Quelle | Modell | Nutzen für den Vergleich |
+|---|---|---|
+| [Computational Solution to the Problems of Projectile Motion under Significant Linear Drag Effect (SCIRP)](https://www.scirp.org/journal/paperinformation?paperid=124404) | linear, `F = −b·v` | Geschlossene Lösungen für x(t), y(t), Bahnkurve y(x) und Näherung der Wurfweite für schwache Reibung |
+| [GeoGebra: Wurf mit Differenzengleichungen](https://www.geogebra.org/m/MsVRs4pn) | Reibung über einen Schieberegler `k`, Modell nicht dokumentiert | Visueller Vergleich der Bahnform |
+| [rechner-portal.de: Schiefer-Wurf-Rechner](https://rechner-portal.de/elektronik-physik/mechanik-physik/schiefer-wurf-rechner) | Vakuum, mit Abwurfhöhe und eigenem g | Vergleich für `cw = 0`; hat ebenfalls Rückrechnung von Winkel/Geschwindigkeit aus einer Zielweite |
+| [8gwifi Projectile Motion Simulator](https://8gwifi.org/projectile-motion-simulator.jsp) | quadratisch, `½·ρ·Cd·A·v²`, mit Starthöhe | Vakuumfall; quadratische Reibung als obere Abschätzung des Reibungseinflusses |
+| [calculate.co.nz: Projectile Motion with Air Drag](https://www.calculate.co.nz/projectile-motion-air-drag-calculator.php) | quadratisch, `k·v²` | wie oben |
+| [Uni Kassel, Virtuelles Physiklabor: Schiefer Wurf](https://www.uni-kassel.de/fb10/institute/physik/forschungsgruppen/oberflaechenphysik/virtuelles-physiklabor/mechanik/schiefer-wurf.html) | quadratisch (Newton-Reibung, cw = 1) | Vergleich mit Newton-Reibung |
+| [Omni Calculator: Stokes'sches Gesetz](https://www.omnicalculator.com/de/physik/stokessches-gesetz-rechner) | Stokes-Sinkgeschwindigkeit | Wer `k = 6πηr` statt `½·cw·ρ·A` verwenden will |
+
+**Eigene Gegenrechnung** ohne Online-Rechner, z. B. in Wolfram Alpha oder Mathematica:
+
+```
+NDSolve[{x''[t] == -k/m x'[t], y''[t] == -k/m y'[t] - g,
+         x[0] == 0, y[0] == h0, x'[0] == v0 Cos[a], y'[0] == v0 Sin[a]}, {x, y}, {t, 0, 100}]
+```
+
+Oder mit `tool/reference_values.py`, das genau das mit SciPy tut.
